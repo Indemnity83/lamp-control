@@ -17,7 +17,7 @@ jobs:
         run: |
           sudo add-apt-repository --yes ppa:kicad/kicad-7.0-releases
           sudo apt-get update
-          sudo apt-get install -y kicad-cli
+          sudo apt-get install -y kicad
 
       - name: Build manufacturing assets
         run: make build
