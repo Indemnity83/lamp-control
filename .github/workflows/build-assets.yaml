@@ -13,11 +13,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install KiCad CLI
+      - name: Download and extract KiCad 9.0 AppImage
         run: |
-          sudo add-apt-repository --yes ppa:kicad/kicad-7.0-releases
-          sudo apt-get update
-          sudo apt-get install -y kicad
+          wget https://gitlab.com/kicad/code/kicad/-/releases/v9.0.0/downloads/KiCad-9.0.0-x86_64.AppImage -O kicad.AppImage
+          chmod +x kicad.AppImage
+          ./kicad.AppImage --appimage-extract
+          echo "$PWD/squashfs-root/usr/bin" >> $GITHUB_PATH
 
       - name: Build manufacturing assets
         run: make build
@@ -26,3 +27,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-assets
+          path: build/
