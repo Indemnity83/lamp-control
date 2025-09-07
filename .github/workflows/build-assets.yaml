@@ -1,0 +1,28 @@
+name: Build Manufacturing Assets
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install KiCad CLI
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-7.0-releases
+          sudo apt-get update
+          sudo apt-get install -y kicad-cli
+
+      - name: Build manufacturing assets
+        run: make build
+
+      - name: Upload manufacturing assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-assets
