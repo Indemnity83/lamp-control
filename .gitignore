@@ -8,6 +8,7 @@
 *.000
 *.bak
 *.bck
+*.lck
 *.kicad_pcb-bak
 *.kicad_sch-bak
 *.kicad_prl
@@ -39,3 +40,7 @@ fp-info-cache
 *.log
 *.raw
 .svg2shenzhen-cache
+.DS_Store
+
+# Backups
+*-backups/
