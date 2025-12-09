@@ -1,0 +1,118 @@
+esphome:
+  name: reading-lamp
+  friendly_name: Reading Lamp
+
+substitutions:
+  ap_ssid: "${name}-setup"
+
+esp8266:
+  board: esp12e
+
+# Enable logging over UART
+logger:
+
+# Enable Home Assistant native API
+api:
+  encryption:
+    key: !secret encryption_key
+
+# Enable OTA updates via ESPHome
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Fallback hotspot (captive portal) if Wi-Fi connection fails.
+  # SSID/password are kept in secrets for privacy.
+  ap:
+    ssid: "${ap_ssid}"
+    password: !secret reading_lamp_ap_password
+
+captive_portal:
+
+# Use Home Assistant as the time source (if ever needed for automations)
+time:
+  - platform: homeassistant
+    id: ha_time
+
+# Lightweight web UI for debugging / manual control
+web_server:
+  port: 80
+
+# I2C bus (reserved for future use / sensors)
+i2c:
+  sda: GPIO4
+  scl: GPIO5
+  scan: true
+
+globals:
+  # Brightness step index (0–3).
+  # This value IS restored across reboots (restore_value: yes), so the lamp
+  # will return to the last-used brightness level even after power loss or restart.
+  - id: brightness_step
+    type: uint8_t
+    restore_value: yes
+    initial_value: '0'
+    
+output:
+  # PWM output to drive the lamp (low-voltage side of the dimmer / LED driver).
+  - platform: esp8266_pwm
+    pin: GPIO02
+    id: lamp_pwm
+    frequency: 1000 Hz
+
+light:
+  - platform: monochromatic
+    id: lamp_light
+    name: "Reading Lamp"
+    output: lamp_pwm
+    default_transition_length: 300ms
+    restore_mode: ALWAYS_OFF   # Always start off after power-up / reboot
+    gamma_correct: 2.2         # More natural brightness curve
+
+    # NOTE: We intentionally do NOT reset brightness_step here.
+    # Design intent: when the lamp is turned off (via touch or HA),
+    # turning it back on returns to the last used brightness level.
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO16
+      mode: INPUT
+      inverted: false
+    internal: true
+    id: touch_sensor
+
+    # Using a TTP223B touch IC on this pin, which already handles
+    # debouncing and provides a clean digital signal.
+    # No additional ESPHome filters are needed here.
+
+    # Short click: turn on (if off) or cycle brightness levels (if on).
+    on_click:
+      then:
+        - lambda: |-
+            // If the lamp is currently on, advance to the next brightness step.
+            // If it's off, keep the current step so the lamp turns back on
+            // at the same brightness it was last used.
+            if (id(lamp_light).current_values.is_on()) {
+              id(brightness_step) = (id(brightness_step) + 1) % 4;
+            }
+
+            // Brightness levels: 100%, 75%, 50%, 25%.
+            static const float L[4] = {1.0f, 0.75f, 0.50f, 0.25f};
+
+            auto call = id(lamp_light).turn_on();
+            call.set_brightness(L[id(brightness_step)]);
+            call.perform();
+
+    # Long press (hold ≥ 1s): turn the lamp off.
+    # This is the only physical way to turn it off at the lamp itself,
+    # so we keep this behavior simple and reliable.
+    on_multi_click:
+      - timing:
+          - ON for at least 1s
+        then:
+          - light.turn_off: lamp_light

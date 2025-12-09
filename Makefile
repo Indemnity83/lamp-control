@@ -2,11 +2,12 @@
 
 # Project settings
 PROJECT_NAME := lamp-control
-SCHEMATIC := $(PROJECT_NAME).kicad_sch
-BOARD := $(PROJECT_NAME).kicad_pcb
+HARDWARE_DIR := hardware
+SCHEMATIC := $(HARDWARE_DIR)/$(PROJECT_NAME).kicad_sch
+BOARD := $(HARDWARE_DIR)/$(PROJECT_NAME).kicad_pcb
 
 # Output directories
-OUTPUT_DIR := build
+OUTPUT_DIR := hardware/build
 GERBER_DIR := $(OUTPUT_DIR)/gerber
 DOCS_DIR := docs
 
